@@ -1,0 +1,51 @@
+kind: pipeline
+name: LLVM CLANG BUILD
+
+clone:
+  disable: true
+
+platform:
+  arch: amd64
+
+steps:
+- name: BUILDING LLVM
+  image: ubuntu:20.04
+  environment:
+      DEBIAN_FRONTEND: noninteractive
+      GITHUB_TOKEN:
+        from_secret: GITHUB_TOKEN
+
+      TARGET: AArch64;arm32
+      CLANG_VERSION: 11
+      CLANG_VENDOR: "EternalX clang version 11.0.0"
+
+      GIT_REPO: EternalX-project/EternalX-Clang
+      GIT_BRANCH: amd64
+      GIT_COMMIT_MESSAGE: "Update Clang 11 from CI build"
+  commands:
+    # Setup Docker
+    - apt-get update
+    - apt-get install -yq software-properties-common lsb-release apt-transport-https ca-certificates curl software-properties-common
+    - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+    - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu  $(lsb_release -cs)  stable"
+    - apt-get install -yq docker-ce
+
+    # Installing Dependencies
+    - apt-get update
+    - apt-get -y upgrade
+    - apt-get -y install bc binutils-dev bison build-essential ca-certificates ccache clang cmake curl file flex git libelf-dev libssl-dev lld make ninja-build python3-dev texinfo u-boot-tools xz-utils zlib1g-dev
+    
+    # Building GCC
+    - git clone https://github.com/EternalX-project/tc-build.git builder && cd builder
+    - python3 build-llvm.py --assertions --branch release/$CLANG_VERSION.x --clang-vendor "$CLANG_VENDOR" --targets "$TARGET" --use-good-revision
+
+    # Push GCC To Github
+    - git clone "https://$GITHUB_TOKEN@github.com/$GIT_REPO" upstream -b $GIT_BRANCH	
+    - cd upstream
+    - rm -rf *
+    - cp -r ../install/* .
+    - git add .
+    - git commit -am "$GIT_COMMIT_MESSAGE"
+    - git push origin $GIT_BRANCH
+
+
