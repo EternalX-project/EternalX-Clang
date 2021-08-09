@@ -15,7 +15,7 @@ steps:
       GITHUB_TOKEN:
         from_secret: GITHUB_TOKEN
 
-      TARGET: AArch64;arm32
+      TARGET: AArch64;ARM
       CLANG_VERSION: 11
       CLANG_VENDOR: "EternalX clang version 11.0.0"
 
