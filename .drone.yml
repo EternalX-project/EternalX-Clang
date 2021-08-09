@@ -46,6 +46,6 @@ steps:
     - cp -r ../install/* .
     - git add .
     - git commit -am "$GIT_COMMIT_MESSAGE"
-    - git push origin $GIT_BRANCH
+    - git push
 
 
