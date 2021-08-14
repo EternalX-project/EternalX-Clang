@@ -1,0 +1,48 @@
+version: 2.1
+
+jobs:
+  build:
+    docker:
+    - image: ubuntu:20.04
+    environment:
+        DEBIAN_FRONTEND: noninteractive
+        GITHUB_TOKEN: $GITHUB_TOKEN
+        BINUTILS_TARGET: aarch64;arm
+        CLANG_TARGET: AArch64;ARM
+        CLANG_VERSION: 13
+        CLANG_VENDOR: "EternalX"
+        GIT_USER: EternalX-project
+        GIT_REPO: EternalX-project/EternalX-Clang
+        GIT_BRANCH: amd64
+        GIT_COMMIT_MESSAGE: "Update Clang 13 from CI build"
+    steps:
+      - run:
+          name: Installing Dependencies
+          command: |
+            apt-get update
+            apt-get -y upgrade
+            apt-get -y install bc binutils-dev bison build-essential ca-certificates ccache clang cmake curl file flex git libelf-dev libssl-dev lld make ninja-build python3-dev texinfo u-boot-tools xz-utils zlib1g-dev   
+      - run:
+          name: Building Binutils
+          command: |
+            git clone https://github.com/EternalX-project/tc-build.git builder && cd builder
+            python3 build-binutils.py --targets $(echo $BINUTILS_TARGET | sed 's/;/ /g')
+      - run:
+          name: Building LLVM
+          command: |
+            python3 build-llvm.py --branch release/$CLANG_VERSION.x --clang-vendor "$CLANG_VENDOR" --lto full --pgo kernel-defconfig --shallow-clone --show-build-commands --targets "$CLANG_TARGET"
+      - run:
+          name: Pushing LLVM & Binutils To Github 
+          command: |
+            git clone "https://$GIT_USER:$GITHUB_TOKEN@github.com/$GIT_REPO" upstream -b $GIT_BRANCH	
+            cd upstream
+            rm -rf *
+            cp -r ../install/* .
+            git add .
+            git commit -am "$GIT_COMMIT_MESSAGE"
+            git push
+
+workflows:
+  building:
+    jobs:
+      - build
