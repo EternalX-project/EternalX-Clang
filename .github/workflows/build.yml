@@ -1,18 +1,34 @@
-name: Build test
+name: LLVM CLANG BUILD
+
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+
 jobs:
-  build-test:
+  build:
     runs-on: ubuntu-latest
+    
+    env:
+      GIT_NAME: {{ secrets.GIT_AUTHOR_NAME }}
+      GIT_EMAIL: {{ secrets.GH_AUTHOR_EMAIL }}
+      GH_TOKEN: {{ secrets.GH_TOKEN }}
+      GH_USER: {{ secrets.GH_USER }}
+      GH_RUN_ID: {{ secrets.GH_RUN_ID }}
+      GH_BUILD_REPO: {{ secrets.GH_BUILD_REPO }}
+      GH_REL_REPO: {{ secrets.GH_REL_REPO }}
+
     steps:
-    - uses: actions/checkout@v2
-    - name: Install dependencies
-      run: bash ci.sh deps
-    - name: Build LLVM
-      run: bash ci.sh llvm
-    - name: Build binutils
-      run: bash ci.sh binutils
-    - name: Build kernel
-      run: bash ci.sh kernel
+      - name: Installing Dependencies
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y upgrade
+          sudo apt-get -y install bc binutils-dev bison build-essential ca-certificates ccache clang cmake curl file flex git libelf-dev libssl-dev lld make ninja-build python3-dev texinfo u-boot-tools xz-utils zlib1g-dev
+
+      - name: Deploy Builder
+        uses: actions/checkout@v2
+
+      - name: Build Toolchains
+        run: ./build-tc.sh
+
+      - name: Push Toolchains
+        run: ./push-tc.sh
+      
